@@ -1,0 +1,63 @@
+infra
+------
+
+-create iot hub
+-create DPS
+-create group enroll
+-set DPS info on Device 2 
+
+edge - part1 - downstream device
+--------------------------------
+
+-create vm with iot edge runtime
+-create IoT edge device
+-make a backup of the /etc/iotedge/config.yaml
+-set iot edge device string connection + hostname (equals to VM public ip or dns name) on vm and restart iotedge runtime
+-on iot edge device, set modules and confirm (just to have iot hub running, does not need to specify any module or configuration)
+-check if edge modules are running and the device is connected to the iot hub
+-create downstream device and provide the parent as the iot edge device
+-set the downstream device string connection on the simulated device (Device 1) and add at the end the GW info ";GatewayHostName=<VM public ip or dns name>"
+-allow vm edge gateway to receive connection through amqp/mqtt ports (5671, 8883)
+-install certificates on Edge Gateway Device ...
+start from step 10: https://docs.microsoft.com/en-us/learn/modules/set-up-iot-edge-gateway/4-generate-configure-iot-edge-device-certificates
+-... and on downstream device as well
+https://docs.microsoft.com/en-us/learn/modules/set-up-iot-edge-gateway/8-connect-downstream-device-iot-edge-gateway
+other reference: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-connect-downstream-device?view=iotedge-2018-06
+-start downstream device.
+-check if all is running
+
+edge - part 2 - prepare the docker image and registry it in a docker registry service
+--------------------------------------------------------------------------------------
+zip the CalcModule project folder and send to the Edge Gateway (VM in Cloud)
+unpack the CalcModule and get inside the folder to run the docker container and registry commands:
+run this to generate the docker image: sudo docker build -f Dockerfile.amd64 -t augustoaf/edgecalcmodule:7.0 .
+run this to login in your docker hub (registry service): docker login
+run this to publish the image in the docker hub registry: docker push augustoaf/edgecalcmodule:7.0
+
+edge - part 3 - install module and route downstream to it
+-------------------------------------------------------------------------------
+install module on the edge using this uri: "docker.io/augustoaf/edgecalcmodule:7.0" .. use the module name as "CalcModule"
+set the routes as below:
+"CalcModuleToIoTHub": FROM /messages/modules/CalcModule/outputs/* INTO $upstream
+"LeafDeviceToCalcModule": FROM /messages/* WHERE NOT IS_DEFINED($connectionModuleId) INTO BrokeredEndpoint("/modules/CalcModule/inputs/input1")
+
+Final
+--------
+start device1 (downstream device - D2C messages through edget gw) and device2 (device - D2C messages directly through iot hub)
+check messages delivered
+
+route to event hub
+------------------
+create a routing rule on iot hub and point to an event hub instance all messages from edge device gateway. use the property added in the CalcModule (route query = "source = "edgeGateway"")
+at event hub instance, create a shared access policy (mark listen) and use the string connection of this policy in your backend app
+start backendapp + start monitoring of messages in iot hub
+
+Additional items:
+----------------------
+there is an email alert for wrong direct methods
+
+
+TROUBLE SHOOTING
+------------------
+edge module must establish communication with same procotol as leaf device. why(?)
+
