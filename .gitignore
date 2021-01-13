@@ -20,3 +20,7 @@ bld/
 
 #NPM 
 [Pp]ackages/
+
+#certification & config files
+*.pem
+*.conf

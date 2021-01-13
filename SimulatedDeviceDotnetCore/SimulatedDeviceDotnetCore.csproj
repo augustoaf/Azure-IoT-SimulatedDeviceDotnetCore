@@ -11,4 +11,10 @@
     <PackageReference Include="Microsoft.Azure.Devices.Provisioning.Transport.Amqp" Version="1.13.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="AppProperties.conf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -11,22 +11,29 @@ namespace SimulatedDeviceDotnetCore
     class Program
     {
         //DPS Scope ID
-        private static string s_idScope = "teste";//Environment.GetEnvironmentVariable("DPS_IDSCOPE");
+        private static string idScope;
         //keys from DPS enrollment group. 
-        private const string enrollmentGroupPrimaryKey = "teste";
-        private const string enrollmentGroupSecondaryKey = "teste";
+        private static string enrollmentGroupPrimaryKey;
+        private static string enrollmentGroupSecondaryKey;
         //Registration Id for this Device - required if using DPS
-        private static string registrationId = "device2";
-
+        private static string registrationId;
         //Device String Connection - Use this or DPS info above to connect the device - add GatewayHostName at the end if a downstream device using a Edge Gateway
-        private static string deviceStringConnection = "HostName=teste.azure-devices.net;DeviceId=device2;SharedAccessKey=teste";
-        //private static string deviceStringConnection = "HostName=iothubbyaugusto.azure-devices.net;DeviceId=device1;SharedAccessKey=bGyzWD5D04IOJDSiRK13tYHizgrMqBFa+MfwEB+eauo=;GatewayHostName=52.184.226.192";
-
+        private static string deviceStringConnection;
+        
         private static int counter = 0;
+        private static string[] config = null;
 
         static void Main(string[] args)
         {
-            bool dpsInfoOk = !string.IsNullOrWhiteSpace(s_idScope) && !string.IsNullOrWhiteSpace(enrollmentGroupPrimaryKey) &&
+            //load app properties 
+            ReadConfigFile();
+            idScope = GetProperty("idScope");
+            enrollmentGroupPrimaryKey = GetProperty("enrollmentGroupPrimaryKey");
+            enrollmentGroupSecondaryKey = GetProperty("enrollmentGroupSecondaryKey");
+            registrationId = GetProperty("registrationId");
+            deviceStringConnection = GetProperty("deviceStringConnection");
+
+            bool dpsInfoOk = !string.IsNullOrWhiteSpace(idScope) && !string.IsNullOrWhiteSpace(enrollmentGroupPrimaryKey) &&
                  !string.IsNullOrWhiteSpace(enrollmentGroupSecondaryKey) && !string.IsNullOrWhiteSpace(registrationId);
             bool directConnection = !string.IsNullOrWhiteSpace(deviceStringConnection);
 
@@ -54,7 +61,7 @@ namespace SimulatedDeviceDotnetCore
                 {
                     //Provision through DPS and return DeviceClient object
                     ProvisioningDeviceClientWrapper provisionWrapper = new ProvisioningDeviceClientWrapper(
-                        s_idScope, registrationId, enrollmentGroupPrimaryKey, enrollmentGroupSecondaryKey);
+                        idScope, registrationId, enrollmentGroupPrimaryKey, enrollmentGroupSecondaryKey);
 
                     deviceClient = provisionWrapper.RunAsync().GetAwaiter().GetResult();
                 }
@@ -67,6 +74,26 @@ namespace SimulatedDeviceDotnetCore
                 Console.ReadLine();
             }
 
+        }
+
+        //The config file must have a property in each line and the key and value must be separated by " = "
+        static void ReadConfigFile()
+        {
+            // Read each line of the file into a string array. Each element of the array is one line of the file.
+            string[] lines = System.IO.File.ReadAllLines(@"AppProperties.conf");
+            config = lines;
+        }
+
+        //Get property value in a text file
+        static string GetProperty(string property)
+        {
+            string separator = " = ";
+            foreach (string line in config)
+            {
+                if (property == line.Split(separator)[0])
+                    return line.Split(separator)[1];
+            }
+            return null;
         }
 
         private static async void sendTelemetryData(DeviceClient deviceClient)
