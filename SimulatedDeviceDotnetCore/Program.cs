@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Client;
 using System.Security.Cryptography.X509Certificates;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace SimulatedDeviceDotnetCore
 {
@@ -79,7 +80,22 @@ namespace SimulatedDeviceDotnetCore
                 {
                     counter = counter + 1;
 
+                    // Create JSON message.
+                    //var telemetryDataPoint = new
+                    //{
+                    //    counter = counter,
+                    //    body_source = "augustoDevice"
+                    //};
+                    //var messageString = JsonConvert.SerializeObject(telemetryDataPoint);
+                    //var message = new Message(Encoding.ASCII.GetBytes(messageString));
+
+                    //or for a simple text payload
                     Message message = new Message(Encoding.UTF8.GetBytes(counter.ToString()));
+
+                    // Add custom application properties to the message.
+                    //Note: there is no visibility of this property using "az iot hub monitor-events -n iothubbyaugusto", but it is there and when using iot hub message routing: device_name = "augustoDevice" it works
+                    message.Properties.Add("device_name", "augustoDevice");
+
                     await deviceClient.SendEventAsync(message).ConfigureAwait(false);
 
                     Console.WriteLine("Message sent from " + registrationId + ": " + counter.ToString());
